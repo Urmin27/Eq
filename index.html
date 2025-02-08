@@ -80,6 +80,7 @@
 
         if (isFromInvitation && localStorage.getItem("canRegister") === "yes") {
             document.getElementById("signupForm").style.display = "block";
+            document.getElementById("invitationLinkContainer").style.display = "none"; // Afenina ny lien invitation
         }
 
         function register() {
@@ -94,7 +95,7 @@
                 localStorage.setItem(phone, JSON.stringify(userData));
 
                 alert("Inscription réussie !");
-                window.location.href = window.location.pathname;
+                window.location.href = "https://ny-site-nao.com"; // Alefa amin'ny site-nao
             } else {
                 alert("Veuillez remplir tous les champs !");
             }
@@ -114,6 +115,7 @@
                 let user = JSON.parse(userData);
                 if (user.password === loginPassword) {
                     alert("Connexion réussie !");
+                    window.location.href = "https://ny-site-nao.com"; // Alefa amin'ny site-nao
                 } else {
                     alert("Mot de passe incorrect !");
                 }
