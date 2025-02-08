@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription</title>
+    <title>Inscription & Connexion</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #1a1a2e; color: white; }
         .container { width: 50%; margin: auto; padding: 20px; background: #16213e; border-radius: 10px; display: none; }
@@ -29,6 +29,15 @@
         <input type="text" id="phone" placeholder="Téléphone" required><br>
         <input type="password" id="password" placeholder="Mot de passe" required><br>
         <button onclick="register()">S'inscrire</button><br>
+        <p><a href="#" onclick="showLogin()">Déjà un compte ? Se connecter</a></p>
+    </div>
+
+    <!-- Formulaire de connexion -->
+    <div class="container" id="loginForm">
+        <h2>Connexion</h2>
+        <input type="text" id="loginInput" placeholder="Email ou Téléphone" required><br>
+        <input type="password" id="loginPassword" placeholder="Mot de passe" required><br>
+        <button onclick="login()">Se connecter</button><br>
         <p><a href="#" onclick="forgotPassword()">Mot de passe oublié ?</a></p>
     </div>
 
@@ -45,17 +54,16 @@
             return "USR" + Math.floor(Math.random() * 100000);
         }
 
-        function generateInvitationLink(userId) {
+        function generateInvitationLink() {
             return window.location.origin + window.location.pathname + "?inscription=1";
         }
 
         function copyInvitationLink() {
-            const invitationLink = generateInvitationLink(userId);
+            const invitationLink = generateInvitationLink();
             navigator.clipboard.writeText(invitationLink)
                 .then(() => {
                     alert("Lien copié !");
                     localStorage.setItem("canRegister", "yes");
-                    window.location.href = invitationLink;
                 });
         }
 
@@ -65,14 +73,13 @@
             localStorage.setItem("userId", userId);
         }
 
-        document.getElementById("invitationLink").textContent = generateInvitationLink(userId);
+        document.getElementById("invitationLink").textContent = generateInvitationLink();
 
         const urlParams = new URLSearchParams(window.location.search);
         const isFromInvitation = urlParams.get("inscription");
 
         if (isFromInvitation && localStorage.getItem("canRegister") === "yes") {
             document.getElementById("signupForm").style.display = "block";
-            localStorage.removeItem("canRegister");
         }
 
         function register() {
@@ -87,14 +94,36 @@
                 localStorage.setItem(phone, JSON.stringify(userData));
 
                 alert("Inscription réussie !");
-                location.reload();
+                window.location.href = window.location.pathname;
             } else {
                 alert("Veuillez remplir tous les champs !");
             }
         }
 
-        function forgotPassword() {
+        function showLogin() {
             document.getElementById("signupForm").style.display = "none";
+            document.getElementById("loginForm").style.display = "block";
+        }
+
+        function login() {
+            let loginInput = document.getElementById("loginInput").value;
+            let loginPassword = document.getElementById("loginPassword").value;
+            let userData = localStorage.getItem(loginInput);
+
+            if (userData) {
+                let user = JSON.parse(userData);
+                if (user.password === loginPassword) {
+                    alert("Connexion réussie !");
+                } else {
+                    alert("Mot de passe incorrect !");
+                }
+            } else {
+                alert("Aucun compte trouvé !");
+            }
+        }
+
+        function forgotPassword() {
+            document.getElementById("loginForm").style.display = "none";
             document.getElementById("forgotPasswordForm").style.display = "block";
         }
 
