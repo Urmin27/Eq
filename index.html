@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription & Connexion</title>
+    <title>Inscription</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #1a1a2e; color: white; }
         .container { width: 50%; margin: auto; padding: 20px; background: #16213e; border-radius: 10px; display: none; }
         input, button { margin: 10px; padding: 10px; font-size: 16px; width: 80%; }
         button { background: #00d4ff; color: white; border: none; cursor: pointer; }
         button:hover { background: #ffcc00; color: black; }
-        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -22,24 +21,23 @@
         <button onclick="copyInvitationLink()">📋 Copier</button>
     </p>
 
+    <!-- Formulaire d'inscription -->
     <div class="container" id="signupForm">
         <h2>Inscription</h2>
         <input type="text" id="fullname" placeholder="Nom complet" required><br>
         <input type="email" id="email" placeholder="Email" required><br>
         <input type="text" id="phone" placeholder="Téléphone" required><br>
-        <p>Captcha: <span id="captchaQuestion"></span></p>
-        <input type="number" id="captchaAnswer" placeholder="Votre réponse" required><br>
-        <input type="text" id="invitationCode" readonly><br>
+        <input type="password" id="password" placeholder="Mot de passe" required><br>
         <button onclick="register()">S'inscrire</button><br>
-        <p>Déjà un compte ? <a href="#" onclick="showLogin()">Connecte-toi</a></p>
+        <p><a href="#" onclick="forgotPassword()">Mot de passe oublié ?</a></p>
     </div>
 
-    <div class="container hidden" id="loginForm">
-        <h2>Connexion</h2>
-        <input type="text" id="loginPhone" placeholder="Numéro de téléphone" required><br>
-        <input type="password" id="loginPassword" placeholder="Mot de passe" required><br>
-        <button onclick="login()">Se connecter</button><br>
-        <p><a href="#" onclick="forgotPassword()">Mot de passe oublié ?</a></p>
+    <!-- Formulaire de récupération du mot de passe -->
+    <div class="container" id="forgotPasswordForm">
+        <h2>Récupération du mot de passe</h2>
+        <input type="text" id="recoveryInput" placeholder="Email ou Téléphone" required><br>
+        <button onclick="recoverPassword()">Récupérer</button><br>
+        <p id="recoveredPassword"></p>
     </div>
 
     <script>
@@ -48,12 +46,17 @@
         }
 
         function generateInvitationLink(userId) {
-            return window.location.origin + window.location.pathname + "?ref=" + userId;
+            return window.location.origin + window.location.pathname + "?inscription=1";
         }
 
         function copyInvitationLink() {
-            navigator.clipboard.writeText(document.getElementById("invitationLink").textContent)
-                .then(() => alert("Lien copié !"));
+            const invitationLink = generateInvitationLink(userId);
+            navigator.clipboard.writeText(invitationLink)
+                .then(() => {
+                    alert("Lien copié !");
+                    localStorage.setItem("canRegister", "yes");
+                    window.location.href = invitationLink;
+                });
         }
 
         let userId = localStorage.getItem("userId");
@@ -65,240 +68,49 @@
         document.getElementById("invitationLink").textContent = generateInvitationLink(userId);
 
         const urlParams = new URLSearchParams(window.location.search);
-        const refCode = urlParams.get("ref");
+        const isFromInvitation = urlParams.get("inscription");
 
-        if (refCode) {
-            document.getElementById("invitationLinkContainer").style.display = "none";
+        if (isFromInvitation && localStorage.getItem("canRegister") === "yes") {
             document.getElementById("signupForm").style.display = "block";
-            document.getElementById("invitationCode").value = refCode;
+            localStorage.removeItem("canRegister");
         }
-
-        function generateCaptcha() {
-            const num1 = Math.floor(Math.random() * 10) + 1;
-            const num2 = Math.floor(Math.random() * 10) + 1;
-            document.getElementById("captchaQuestion").textContent = `${num1} + ${num2} = ?`;
-            return num1 + num2;
-        }
-
-        let correctCaptcha = generateCaptcha();
 
         function register() {
-            const fullname = document.getElementById("fullname").value;
-            const email = document.getElementById("email").value;
-            const phone = document.getElementById("phone").value;
-            const captcha = parseInt(document.getElementById("captchaAnswer").value);
-            const referrer = document.getElementById("invitationCode").value;
+            let fullname = document.getElementById("fullname").value;
+            let email = document.getElementById("email").value;
+            let phone = document.getElementById("phone").value;
+            let password = document.getElementById("password").value;
 
-            let users = JSON.parse(localStorage.getItem("users")) || [];
+            if (fullname && email && phone && password) {
+                let userData = { fullname, email, phone, password };
+                localStorage.setItem(email, JSON.stringify(userData));
+                localStorage.setItem(phone, JSON.stringify(userData));
 
-            if (users.some(user => user.email === email || user.phone === phone)) {
-                alert("Ce compte existe déjà !");
-                return;
+                alert("Inscription réussie !");
+                location.reload();
+            } else {
+                alert("Veuillez remplir tous les champs !");
             }
-
-            if (captcha !== correctCaptcha) {
-                alert("Captcha incorrect !");
-                return;
-            }
-
-            let newUser = { fullname, email, phone, password: "1234", referrer, bonus: 0 };
-            users.push(newUser);
-            localStorage.setItem("users", JSON.stringify(users));
-
-            let referrerUser = users.find(user => user.phone === referrer);
-            if (referrerUser) {
-                referrerUser.bonus = (referrerUser.bonus || 0) + 0.01;
-                localStorage.setItem("users", JSON.stringify(users));
-            }
-
-            alert("Inscription réussie !");
-            document.getElementById("signupForm").classList.add("hidden");
-            document.getElementById("loginForm").classList.remove("hidden");
-        }
-
-        function showLogin() {
-            document.getElementById("signupForm").classList.add("hidden");
-            document.getElementById("loginForm").classList.remove("hidden");
-        }
-
-        function login() {
-            const phone = document.getElementById("loginPhone").value;
-            const password = document.getElementById("loginPassword").value;
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-
-            let user = users.find(u => u.phone === phone && u.password === password);
-            if (!user) {
-                alert("Utilisateur non trouvé !");
-                return;
-            }
-
-            alert("Connexion réussie !");
-            window.location.href = "https://site-web-asa-en-ligne-m-da-6fzi.vercel.app/";
         }
 
         function forgotPassword() {
-            const phone = prompt("Entrez votre numéro de téléphone :");
-            let users = JSON.parse(localStorage.getItem("users")) || [];
+            document.getElementById("signupForm").style.display = "none";
+            document.getElementById("forgotPasswordForm").style.display = "block";
+        }
 
-            let user = users.find(u => u.phone === phone);
-            if (user) {
-                alert("Votre mot de passe est : " + user.password);
+        function recoverPassword() {
+            let recoveryInput = document.getElementById("recoveryInput").value;
+            let userData = localStorage.getItem(recoveryInput);
+
+            if (userData) {
+                let user = JSON.parse(userData);
+                document.getElementById("recoveredPassword").innerHTML = 
+                    "Votre mot de passe est : <strong>" + user.password + "</strong>";
             } else {
-                alert("Numéro introuvable !");
+                alert("Aucun compte trouvé avec cet Email ou Téléphone !");
             }
         }
     </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription & Connexion</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #1a1a2e; color: white; }
-        .container { width: 50%; margin: auto; padding: 20px; background: #16213e; border-radius: 10px; display: none; }
-        input, button { margin: 10px; padding: 10px; font-size: 16px; width: 80%; }
-        button { background: #00d4ff; color: white; border: none; cursor: pointer; }
-        button:hover { background: #ffcc00; color: black; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
 
-    <h1>Programme de Parrainage</h1>
-    <p id="invitationLinkContainer">
-        <strong>Votre lien d'invitation :</strong> 
-        <span id="invitationLink">Génération...</span>
-        <button onclick="copyInvitationLink()">📋 Copier</button>
-    </p>
-
-    <div class="container" id="signupForm">
-        <h2>Inscription</h2>
-        <input type="text" id="fullname" placeholder="Nom complet" required><br>
-        <input type="email" id="email" placeholder="Email" required><br>
-        <input type="text" id="phone" placeholder="Téléphone" required><br>
-        <p>Captcha: <span id="captchaQuestion"></span></p>
-        <input type="number" id="captchaAnswer" placeholder="Votre réponse" required><br>
-        <input type="text" id="invitationCode" readonly><br>
-        <button onclick="register()">S'inscrire</button><br>
-        <p>Déjà un compte ? <a href="#" onclick="showLogin()">Connecte-toi</a></p>
-    </div>
-
-    <div class="container hidden" id="loginForm">
-        <h2>Connexion</h2>
-        <input type="text" id="loginPhone" placeholder="Numéro de téléphone" required><br>
-        <input type="password" id="loginPassword" placeholder="Mot de passe" required><br>
-        <button onclick="login()">Se connecter</button><br>
-        <p><a href="#" onclick="forgotPassword()">Mot de passe oublié ?</a></p>
-    </div>
-
-    <script>
-        function generateUserId() {
-            return "USR" + Math.floor(Math.random() * 100000);
-        }
-
-        function generateInvitationLink(userId) {
-            return window.location.origin + window.location.pathname + "?ref=" + userId;
-        }
-
-        function copyInvitationLink() {
-            navigator.clipboard.writeText(document.getElementById("invitationLink").textContent)
-                .then(() => alert("Lien copié !"));
-        }
-
-        let userId = localStorage.getItem("userId");
-        if (!userId) {
-            userId = generateUserId();
-            localStorage.setItem("userId", userId);
-        }
-
-        document.getElementById("invitationLink").textContent = generateInvitationLink(userId);
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const refCode = urlParams.get("ref");
-
-        if (refCode) {
-            document.getElementById("invitationLinkContainer").style.display = "none";
-            document.getElementById("signupForm").style.display = "block";
-            document.getElementById("invitationCode").value = refCode;
-        }
-
-        function generateCaptcha() {
-            const num1 = Math.floor(Math.random() * 10) + 1;
-            const num2 = Math.floor(Math.random() * 10) + 1;
-            document.getElementById("captchaQuestion").textContent = `${num1} + ${num2} = ?`;
-            return num1 + num2;
-        }
-
-        let correctCaptcha = generateCaptcha();
-
-        function register() {
-            const fullname = document.getElementById("fullname").value;
-            const email = document.getElementById("email").value;
-            const phone = document.getElementById("phone").value;
-            const captcha = parseInt(document.getElementById("captchaAnswer").value);
-            const referrer = document.getElementById("invitationCode").value;
-
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-
-            if (users.some(user => user.email === email || user.phone === phone)) {
-                alert("Ce compte existe déjà !");
-                return;
-            }
-
-            if (captcha !== correctCaptcha) {
-                alert("Captcha incorrect !");
-                return;
-            }
-
-            let newUser = { fullname, email, phone, password: "1234", referrer, bonus: 0 };
-            users.push(newUser);
-            localStorage.setItem("users", JSON.stringify(users));
-
-            let referrerUser = users.find(user => user.phone === referrer);
-            if (referrerUser) {
-                referrerUser.bonus = (referrerUser.bonus || 0) + 0.01;
-                localStorage.setItem("users", JSON.stringify(users));
-            }
-
-            alert("Inscription réussie !");
-            document.getElementById("signupForm").classList.add("hidden");
-            document.getElementById("loginForm").classList.remove("hidden");
-        }
-
-        function showLogin() {
-            document.getElementById("signupForm").classList.add("hidden");
-            document.getElementById("loginForm").classList.remove("hidden");
-        }
-
-        function login() {
-            const phone = document.getElementById("loginPhone").value;
-            const password = document.getElementById("loginPassword").value;
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-
-            let user = users.find(u => u.phone === phone && u.password === password);
-            if (!user) {
-                alert("Utilisateur non trouvé !");
-                return;
-            }
-
-            alert("Connexion réussie !");
-            window.location.href = "https://site-web-asa-en-ligne-m-da-6fzi.vercel.app/";
-        }
-
-        function forgotPassword() {
-            const phone = prompt("Entrez votre numéro de téléphone :");
-            let users = JSON.parse(localStorage.getItem("users")) || [];
-
-            let user = users.find(u => u.phone === phone);
-            if (user) {
-                alert("Votre mot de passe est : " + user.password);
-            } else {
-                alert("Numéro introuvable !");
-            }
-        }
-    </script>
 </body>
 </html>
