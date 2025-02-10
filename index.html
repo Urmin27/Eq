@@ -67,6 +67,20 @@
     .send-btn:hover {
       transform: scale(1.05);
     }
+    .notification {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #28a745;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      font-weight: bold;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -99,6 +113,10 @@
       <button type="submit" class="send-btn">ENVOYER</button>
     </form>
   </div>
+
+  <div id="notification" class="notification">
+    ✅ Votre demande a bien été reçue ! Nous vous répondrons sur Facebook.
+  </div>
   
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -123,6 +141,15 @@
         );
         
         window.location.href = "mailto:evofinances2@gmail.com?subject=" + subject + "&body=" + body;
+        
+        // Afficher la notification
+        let notification = document.getElementById("notification");
+        notification.style.display = "block";
+        
+        // Cacher après 5 secondes
+        setTimeout(function() {
+          notification.style.display = "none";
+        }, 5000);
         
         document.getElementById("supportForm").reset();
       });
